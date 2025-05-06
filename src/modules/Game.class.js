@@ -59,30 +59,39 @@ class Game {
     this.board[row][column] = Math.random() < 0.9 ? 2 : 4;
   }
 
-  moveLeft() {
-    if (this.status !== 'playing') {
-      return;
-    }
-
+  applyMove(originalRows, updatedRows, updateFn) {
     let moved = false;
 
     for (let r = 0; r < this.size; r++) {
-      const currentRow = this.board[r];
-      const newRow = this.combineRow(currentRow);
-
-      for (let i = 0; i < this.size; i++) {
-        if (currentRow[i] !== newRow[i]) {
+      for (let c = 0; c < this.size; c++) {
+        if (originalRows[r][c] !== updatedRows[r][c]) {
           moved = true;
           break;
         }
       }
 
-      this.board[r] = newRow;
+      if (moved) {
+        break;
+      }
     }
 
     if (moved) {
+      updateFn(updatedRows);
       this.afterMove();
     }
+  }
+
+  moveLeft() {
+    if (this.status !== 'playing') {
+      return;
+    }
+
+    const original = this.board.map((row) => [...row]);
+    const updated = this.board.map((row) => this.combineRow(row));
+
+    this.applyMove(original, updated, (newBoard) => {
+      this.board = newBoard;
+    });
   }
 
   moveRight() {
@@ -90,25 +99,17 @@ class Game {
       return;
     }
 
-    let moved = false;
+    const original = this.board.map((row) => [...row]);
+    const updated = this.board.map((row) => {
+      const reversedRow = [...row].reverse();
+      const newRow = this.combineRow(reversedRow);
 
-    for (let r = 0; r < this.size; r++) {
-      const reversedRow = this.board[r].slice().reverse();
-      const newRow = this.combineRow(reversedRow).reverse();
+      return newRow.reverse();
+    });
 
-      for (let i = 0; i < this.size; i++) {
-        if (this.board[r][i] !== newRow[i]) {
-          moved = true;
-          break;
-        }
-      }
-
-      this.board[r] = newRow;
-    }
-
-    if (moved) {
-      this.afterMove();
-    }
+    this.applyMove(original, updated, (newBoard) => {
+      this.board = newBoard;
+    });
   }
 
   moveUp() {
@@ -116,27 +117,21 @@ class Game {
       return;
     }
 
-    let moved = false;
+    const original = this.board.map((row) => [...row]);
+    const updated = this.createEmptyBoard();
 
     for (let c = 0; c < this.size; c++) {
       const column = this.board.map((row) => row[c]);
       const newColumn = this.combineRow(column);
 
       for (let r = 0; r < this.size; r++) {
-        if (this.board[r][c] !== newColumn[r]) {
-          moved = true;
-          break;
-        }
-      }
-
-      for (let r = 0; r < this.size; r++) {
-        this.board[r][c] = newColumn[r];
+        updated[r][c] = newColumn[r];
       }
     }
 
-    if (moved) {
-      this.afterMove();
-    }
+    this.applyMove(original, updated, (newBoard) => {
+      this.board = newBoard;
+    });
   }
 
   moveDown() {
@@ -144,27 +139,21 @@ class Game {
       return;
     }
 
-    let moved = false;
+    const original = this.board.map((row) => [...row]);
+    const updated = this.createEmptyBoard();
 
     for (let c = 0; c < this.size; c++) {
       const column = this.board.map((row) => row[c]).reverse();
       const newColumn = this.combineRow(column).reverse();
 
       for (let r = 0; r < this.size; r++) {
-        if (this.board[r][c] !== newColumn[r]) {
-          moved = true;
-          break;
-        }
-      }
-
-      for (let r = 0; r < this.size; r++) {
-        this.board[r][c] = newColumn[r];
+        updated[r][c] = newColumn[r];
       }
     }
 
-    if (moved) {
-      this.afterMove();
-    }
+    this.applyMove(original, updated, (newBoard) => {
+      this.board = newBoard;
+    });
   }
 
   combineRow(row) {
